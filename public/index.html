@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Background Remover — ছবির ব্যাকগ্রাউন্ড রিমুভ করুন ফ্রি</title>
+<meta name="description" content="সম্পূর্ণ ফ্রি অনলাইন ব্যাকগ্রাউন্ড রিমুভার। কোনো সাইনআপ ছাড়াই এক ক্লিকে ছবির ব্যাকগ্রাউন্ড সরান। Free online background remover, no signup required.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✂️</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">✂</span>
+    <span class="brand-name">CutBG</span>
+  </div>
+  <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">🌙</button>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>ছবির ব্যাকগ্রাউন্ড মুছুন, ৩ সেকেন্ডে<br><span class="hero-en">Remove image backgrounds — free, forever</span></h1>
+    <p class="hero-sub">কোনো সাইন আপ নাই, কোনো লিমিট নাই। সরাসরি আপলোড করুন। No signup, no watermark, no limit.</p>
+
+    <div id="dropZone" class="drop-zone">
+      <input type="file" id="fileInput" accept="image/*" multiple hidden>
+      <div class="drop-inner">
+        <div class="drop-icon">📷</div>
+        <p class="drop-text">ছবি এখানে ছেড়ে দিন বা ক্লিক করুন<br><span class="drop-text-en">Drop image here or click to upload</span></p>
+        <button class="btn-primary" id="browseBtn">ছবি বেছে নিন / Choose Image</button>
+      </div>
+    </div>
+
+    <p class="usage-counter" id="usageCounter"></p>
+  </section>
+
+  <section id="workArea" class="work-area hidden">
+    <div class="compare-wrap">
+      <div class="slider-container" id="sliderContainer">
+        <img id="originalImg" class="compare-img" alt="original">
+        <div class="after-wrap" id="afterWrap">
+          <canvas id="resultCanvas" class="compare-img"></canvas>
+        </div>
+        <div class="slider-handle" id="sliderHandle">
+          <div class="slider-line"></div>
+          <div class="slider-btn">⇔</div>
+        </div>
+      </div>
+      <p class="status-text" id="statusText">প্রসেসিং হচ্ছে... / Processing...</p>
+    </div>
+
+    <div class="controls-panel">
+      <div class="control-group">
+        <h3>ব্যাকগ্রাউন্ড / Background</h3>
+        <div class="bg-options" id="bgOptions">
+          <button class="bg-swatch transparent-swatch active" data-bg="transparent" title="Transparent"></button>
+          <button class="bg-swatch" style="background:#ffffff" data-bg="#ffffff" title="White"></button>
+          <button class="bg-swatch" style="background:#000000" data-bg="#000000" title="Black"></button>
+          <button class="bg-swatch" style="background:#d0021b" data-bg="#d0021b" title="Red"></button>
+          <button class="bg-swatch" style="background:#4a90d9" data-bg="#4a90d9" title="Blue"></button>
+          <input type="color" id="customColor" class="color-picker" title="Custom color">
+          <label class="bg-swatch upload-swatch" title="Upload background">
+            🖼️<input type="file" id="customBgInput" accept="image/*" hidden>
+          </label>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>সাইজ প্রিসেট / Size preset</h3>
+        <div class="size-options">
+          <button class="chip active" data-size="original">Original</button>
+          <button class="chip" data-size="passport">Passport (2×2in)</button>
+          <button class="chip" data-size="stamp">Stamp size</button>
+          <button class="chip" data-size="square">Square 1:1</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>টাচ-আপ / Touch-up</h3>
+        <div class="touchup-row">
+          <button class="chip" id="eraseTool">🧹 Erase</button>
+          <button class="chip" id="restoreTool">↩ Restore</button>
+          <label class="brush-label">Brush <input type="range" id="brushSize" min="5" max="60" value="20"></label>
+        </div>
+      </div>
+
+      <div class="control-group actions">
+        <div class="format-row">
+          <label><input type="radio" name="format" value="png" checked> PNG (transparent)</label>
+          <label><input type="radio" name="format" value="jpg"> JPG</label>
+        </div>
+        <button class="btn-primary btn-big" id="downloadBtn">⬇ ডাউনলোড / Download</button>
+        <button class="btn-secondary" id="newImageBtn">+ নতুন ছবি / New image</button>
+      </div>
+
+      <div class="control-group share-group">
+        <h3>শেয়ার করুন / Share</h3>
+        <div class="share-row">
+          <button class="share-btn wa" id="shareWA">WhatsApp</button>
+          <button class="share-btn fb" id="shareFB">Facebook</button>
+          <button class="share-btn copy" id="copyLink">🔗 Copy link</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="batchArea" class="batch-area hidden">
+    <h3>ব্যাচ প্রসেসিং / Batch results</h3>
+    <div id="batchGrid" class="batch-grid"></div>
+    <button class="btn-secondary" id="downloadAllBtn">⬇ সব ডাউনলোড (ZIP)</button>
+  </section>
+
+  <section class="teaser">
+    <h2>শীঘ্রই আসছে আরও টুল / More tools coming soon</h2>
+    <div class="teaser-grid">
+      <div class="teaser-card">🗜️<span>Image Compressor</span></div>
+      <div class="teaser-card">📐<span>Photo Resizer</span></div>
+      <div class="teaser-card">🔄<span>Format Converter</span></div>
+    </div>
+  </section>
+
+  <section class="about-section" id="about">
+    <h2>এই টুল সম্পর্কে / About</h2>
+    <p>CutBG একটা সম্পূর্ণ ফ্রি টুল যা দিয়ে আপনি সহজেই যেকোনো ছবির ব্যাকগ্রাউন্ড রিমুভ করতে পারবেন। কোনো সাইনআপ, লগইন বা পেমেন্ট লাগে না — সব ফিচার সবার জন্য উন্মুক্ত। ছবিগুলো শুধুমাত্র আপনার নিজের ব্রাউজারে প্রসেস হয়, আমাদের সার্ভারে কোনো ছবি জমা থাকে না।</p>
+    <p class="about-en">CutBG is a completely free background removal tool. No signup, no login, no payment — every feature is unlocked for everyone. Images are processed locally in your browser and are never uploaded or stored on any server.</p>
+  </section>
+
+  <section class="legal-section" id="privacy">
+    <h2>প্রাইভেসি পলিসি / Privacy Policy</h2>
+    <p>আমরা আপনার আপলোড করা কোনো ছবি সংরক্ষণ করি না। সব প্রসেসিং আপনার ডিভাইসেই (ব্রাউজারে) সম্পন্ন হয়। আমরা শুধু বেনামী ব্যবহারের সংখ্যা (কতবার টুলটি ব্যবহার হয়েছে) ট্র্যাক করি, যাতে কোনো ব্যক্তিগত তথ্য জড়িত থাকে না।</p>
+    <p class="about-en">We do not store any image you upload. All processing happens locally in your browser. We only track anonymous usage counts (how many times the tool is used) — no personal data is involved.</p>
+  </section>
+
+  <section class="legal-section" id="terms">
+    <h2>শর্তাবলী / Terms of Service</h2>
+    <p>এই টুলটি "যেমন আছে" ভিত্তিতে ফ্রি প্রদান করা হয়। ব্যবহারকারীরা নিজ দায়িত্বে টুলটি ব্যবহার করবেন। অবৈধ বা ক্ষতিকর উদ্দেশ্যে ব্যবহার নিষিদ্ধ।</p>
+    <p class="about-en">This tool is provided free "as is". Users are responsible for their own use of the tool. Illegal or harmful use is prohibited.</p>
+  </section>
+</main>
+
+<footer>
+  <p>© 2026 CutBG — Made with care for everyone, free forever.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
