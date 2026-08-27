@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>CutBG Admin</title>
+<style>
+  :root{ --bg:#0f1115; --card:#171a21; --ink:#eef0f3; --soft:#8a90a0; --accent:#57c98a; --border:#242833; }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--ink); }
+  .wrap{ max-width:960px; margin:0 auto; padding:30px 20px 60px; }
+  h1{ font-size:1.4rem; margin-bottom:4px; }
+  .sub{ color:var(--soft); font-size:.85rem; margin-bottom:24px; }
+  .login-box{ max-width:340px; margin:80px auto; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:28px; text-align:center; }
+  .login-box input{ width:100%; padding:12px; margin:14px 0; border-radius:8px; border:1px solid var(--border); background:#0f1115; color:var(--ink); font-size:1rem; }
+  .login-box button{ width:100%; padding:12px; border:none; border-radius:8px; background:var(--accent); color:#04140b; font-weight:700; cursor:pointer; font-size:1rem; }
+  .error{ color:#e77; font-size:.85rem; margin-top:8px; min-height:18px; }
+  .hidden{ display:none !important; }
+
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:24px; }
+  .stat-card{ background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .stat-card .num{ font-size:1.8rem; font-weight:700; }
+  .stat-card .label{ color:var(--soft); font-size:.8rem; margin-top:4px; }
+
+  .panel{ background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:20px; }
+  .panel h3{ margin-top:0; font-size:1rem; color:var(--soft); text-transform:uppercase; letter-spacing:.04em; }
+
+  .bar-chart{ display:flex; align-items:flex-end; gap:3px; height:120px; }
+  .bar{ flex:1; background:var(--accent); border-radius:2px 2px 0 0; min-height:2px; }
+
+  .breakdown-row{ display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:.9rem; }
+  .breakdown-row:last-child{ border-bottom:none; }
+
+  .top-actions{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .btn{ background:transparent; border:1px solid var(--border); color:var(--ink); padding:8px 16px; border-radius:8px; cursor:pointer; font-size:.85rem; }
+  .btn.primary{ background:var(--accent); color:#04140b; border:none; font-weight:600; }
+</style>
+</head>
+<body>
+
+<div id="loginView" class="login-box">
+  <h1>🔒 CutBG Admin</h1>
+  <p class="sub">Enter password to view the dashboard</p>
+  <input type="password" id="passwordInput" placeholder="Password">
+  <button id="loginBtn">Login</button>
+  <p class="error" id="loginError"></p>
+</div>
+
+<div id="dashboardView" class="wrap hidden">
+  <div class="top-actions">
+    <div>
+      <h1>CutBG Dashboard</h1>
+      <p class="sub">Anonymous, aggregate usage stats — no personal data</p>
+    </div>
+    <div>
+      <button class="btn" id="exportBtn">⬇ Export CSV</button>
+      <button class="btn" id="logoutBtn">Logout</button>
+    </div>
+  </div>
+
+  <div class="grid" id="topStats"></div>
+
+  <div class="panel">
+    <h3>Last 30 days</h3>
+    <div class="bar-chart" id="barChart"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr;">
+    <div class="panel">
+      <h3>Device</h3>
+      <div id="deviceBreakdown"></div>
+    </div>
+    <div class="panel">
+      <h3>Browser</h3>
+      <div id="browserBreakdown"></div>
+    </div>
+    <div class="panel">
+      <h3>Traffic source</h3>
+      <div id="sourceBreakdown"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Most-used features</h3>
+    <div id="featureBreakdown"></div>
+  </div>
+
+  <div class="panel">
+    <h3>Funnel</h3>
+    <div id="funnelStats"></div>
+  </div>
+</div>
+
+<script>
+const loginView = document.getElementById('loginView');
+const dashboardView = document.getElementById('dashboardView');
+const passwordInput = document.getElementById('passwordInput');
+const loginBtn = document.getElementById('loginBtn');
+const loginError = document.getElementById('loginError');
+
+async function checkSession() {
+  const res = await fetch('/api/admin/check');
+  const data = await res.json();
+  if (data.isAdmin) showDashboard();
+}
+checkSession();
+
+loginBtn.addEventListener('click', login);
+passwordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+
+async function login() {
+  loginError.textContent = '';
+  const res = await fetch('/api/admin/login', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ password: passwordInput.value })
+  });
+  if (res.ok) {
+    showDashboard();
+  } else {
+    loginError.textContent = 'Wrong password, try again.';
+  }
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/api/admin/logout', { method: 'POST' });
+  location.reload();
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  window.open('/api/admin/export', '_blank');
+});
+
+async function showDashboard() {
+  loginView.classList.add('hidden');
+  dashboardView.classList.remove('hidden');
+  const res = await fetch('/api/admin/stats');
+  const s = await res.json();
+  renderTopStats(s);
+  renderBarChart(s.last30);
+  renderBreakdown('deviceBreakdown', s.byDevice);
+  renderBreakdown('browserBreakdown', s.byBrowser);
+  renderBreakdown('sourceBreakdown', s.byReferrer);
+  renderBreakdown('featureBreakdown', s.byFeature);
+  renderFunnel(s);
+}
+
+function renderTopStats(s) {
+  const items = [
+    ['Total (all-time)', s.totalUses],
+    ['Today', s.today],
+    ['This week', s.thisWeek],
+    ['This month', s.thisMonth],
+    ['Errors', s.errors],
+  ];
+  document.getElementById('topStats').innerHTML = items.map(([label,num]) =>
+    `<div class="stat-card"><div class="num">${num}</div><div class="label">${label}</div></div>`
+  ).join('');
+}
+
+function renderBarChart(last30) {
+  const max = Math.max(1, ...last30.map(d => d.count));
+  document.getElementById('barChart').innerHTML = last30.map(d =>
+    `<div class="bar" style="height:${Math.max(2,(d.count/max)*120)}px" title="${d.date}: ${d.count}"></div>`
+  ).join('');
+}
+
+function renderBreakdown(elId, obj) {
+  const entries = Object.entries(obj || {}).sort((a,b) => b[1]-a[1]);
+  const el = document.getElementById(elId);
+  if (!entries.length) { el.innerHTML = '<p style="color:var(--soft);font-size:.85rem;">No data yet</p>'; return; }
+  el.innerHTML = entries.map(([k,v]) =>
+    `<div class="breakdown-row"><span>${k}</span><span>${v}</span></div>`
+  ).join('');
+}
+
+function renderFunnel(s) {
+  document.getElementById('funnelStats').innerHTML = `
+    <div class="breakdown-row"><span>Uploads started</span><span>${s.starts}</span></div>
+    <div class="breakdown-row"><span>Completed & downloaded</span><span>${s.completions}</span></div>
+    <div class="breakdown-row"><span>Drop-off / bounce rate</span><span>${s.bounceRate}%</span></div>
+  `;
+}
+</script>
+</body>
+</html>
